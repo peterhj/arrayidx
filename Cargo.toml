@@ -1,0 +1,8 @@
+[package]
+name = "arrayidx"
+version = "0.0.1"
+authors = ["Peter Jin <peterhaijin@gmail.com>"]
+
+[lib]
+name = "arrayidx"
+path = "src/lib.rs"
