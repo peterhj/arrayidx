@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::fmt::{Debug};
 use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
 
 pub type Index0d = ();
@@ -31,7 +32,7 @@ pub type Range3d = [Range<usize>; 3];
 pub type Range4d = [Range<usize>; 4];
 pub type Range5d = [Range<usize>; 5];
 
-pub trait ArrayIndex {
+pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   type Range;
   type Above: Sized;
 
