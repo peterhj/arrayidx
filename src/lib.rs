@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#![feature(collections_range)]
+
+use std::collections::{Bound};
+use std::collections::range::{RangeArgument};
 use std::fmt::{Debug};
 use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
 
@@ -25,20 +29,21 @@ pub type Index4d = [usize; 4];
 pub type Index5d = [usize; 5];
 pub struct UnimplIndex;
 
+// TODO: deprecated.
 pub type Range0d = ();
-pub type Range1d = Range<usize>;
-pub type Range2d = [Range<usize>; 2];
-pub type Range3d = [Range<usize>; 3];
-pub type Range4d = [Range<usize>; 4];
-pub type Range5d = [Range<usize>; 5];
+pub type Range1d = ();
+pub type Range2d = ();
+pub type Range3d = ();
+pub type Range4d = ();
+pub type Range5d = ();
 
 pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   type Range;
   type Above: Sized;
 
   fn zero() -> Self where Self: Sized;
-  fn add(&self, shift: &Self) -> Self where Self: Sized;
-  fn sub(&self, shift: &Self) -> Self where Self: Sized;
+  fn index_add(&self, shift: &Self) -> Self where Self: Sized;
+  fn index_sub(&self, shift: &Self) -> Self where Self: Sized;
 
   fn prepend(&self, new_inside: usize) -> Self::Above;
   fn append(&self, new_outside: usize) -> Self::Above;
@@ -58,10 +63,10 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   fn dim(&self) -> usize;
 }
 
-pub trait ArrayRange<Idx> {
+/*pub trait ArrayRange<Idx> {
   fn start(&self, offset: &Idx) -> Idx;
   fn end(&self, limit: &Idx) -> Idx;
-}
+}*/
 
 impl ArrayIndex for Index0d {
   type Range = Range0d;
@@ -71,11 +76,11 @@ impl ArrayIndex for Index0d {
     ()
   }
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     ()
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     ()
   }
 
@@ -124,11 +129,11 @@ impl ArrayIndex for Index1d {
     1
   }
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     *self + *shift
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     *self - *shift
   }
 
@@ -177,12 +182,12 @@ impl ArrayIndex for Index2d {
     [0, 0]
   }
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     [ self[0] + shift[0],
       self[1] + shift[1], ]
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     [ self[0] - shift[0],
       self[1] - shift[1], ]
   }
@@ -236,13 +241,13 @@ impl ArrayIndex for Index3d {
     [0, 0, 0]
   }
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     [ self[0] + shift[0],
       self[1] + shift[1],
       self[2] + shift[2], ]
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     [ self[0] - shift[0],
       self[1] - shift[1],
       self[2] - shift[2], ]
@@ -295,14 +300,14 @@ impl ArrayIndex for Index4d {
   type Range = Range4d;
   type Above = Index5d;
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     [ self[0] + shift[0],
       self[1] + shift[1],
       self[2] + shift[2],
       self[3] + shift[3], ]
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     [ self[0] - shift[0],
       self[1] - shift[1],
       self[2] - shift[2],
@@ -366,7 +371,7 @@ impl ArrayIndex for Index5d {
     [0, 0, 0, 0, 0]
   }
 
-  fn add(&self, shift: &Self) -> Self {
+  fn index_add(&self, shift: &Self) -> Self {
     [ self[0] + shift[0],
       self[1] + shift[1],
       self[2] + shift[2],
@@ -374,7 +379,7 @@ impl ArrayIndex for Index5d {
       self[4] + shift[4], ]
   }
 
-  fn sub(&self, shift: &Self) -> Self {
+  fn index_sub(&self, shift: &Self) -> Self {
     [ self[0] - shift[0],
       self[1] - shift[1],
       self[2] - shift[2],
@@ -427,4 +432,62 @@ impl ArrayIndex for Index5d {
   fn dim(&self) -> usize {
     5
   }
+}
+
+pub fn range2idxs_1d<R>(r: R, size: usize) -> (usize, usize)
+where R: RangeArgument<usize>,
+{
+  let start_idx = match r.start() {
+    Bound::Included(&x) => x,
+    Bound::Excluded(&x) => x + 1,
+    Bound::Unbounded => 0,
+  };
+  let end_idx = match r.end() {
+    Bound::Included(&x) => x - 1,
+    Bound::Excluded(&x) => x,
+    Bound::Unbounded => size,
+    _ => unimplemented!(),
+  };
+  assert!(start_idx <= end_idx);
+  assert!(end_idx <= size);
+  (start_idx, end_idx)
+}
+
+pub fn range2idxs_2d<R0, R1>(r0: R0, r1: R1, size: [usize; 2]) -> ([usize; 2], [usize; 2])
+where R0: RangeArgument<usize>,
+      R1: RangeArgument<usize>,
+{
+  let (s0, e0) = range2idxs_1d(r0, size[0]);
+  let (s1, e1) = range2idxs_1d(r1, size[1]);
+  let start_idx = [s0, s1];
+  let end_idx = [e0, e1];
+  (start_idx, end_idx)
+}
+
+pub fn range2idxs_3d<R0, R1, R2>(r0: R0, r1: R1, r2: R2, size: [usize; 3]) -> ([usize; 3], [usize; 3])
+where R0: RangeArgument<usize>,
+      R1: RangeArgument<usize>,
+      R2: RangeArgument<usize>,
+{
+  let (s0, e0) = range2idxs_1d(r0, size[0]);
+  let (s1, e1) = range2idxs_1d(r1, size[1]);
+  let (s2, e2) = range2idxs_1d(r2, size[2]);
+  let start_idx = [s0, s1, s2];
+  let end_idx = [e0, e1, e2];
+  (start_idx, end_idx)
+}
+
+pub fn range2idxs_4d<R0, R1, R2, R3>(r0: R0, r1: R1, r2: R2, r3: R3, size: [usize; 4]) -> ([usize; 4], [usize; 4])
+where R0: RangeArgument<usize>,
+      R1: RangeArgument<usize>,
+      R2: RangeArgument<usize>,
+      R3: RangeArgument<usize>,
+{
+  let (s0, e0) = range2idxs_1d(r0, size[0]);
+  let (s1, e1) = range2idxs_1d(r1, size[1]);
+  let (s2, e2) = range2idxs_1d(r2, size[2]);
+  let (s3, e3) = range2idxs_1d(r3, size[3]);
+  let start_idx = [s0, s1, s2, s3];
+  let end_idx = [e0, e1, e2, e3];
+  (start_idx, end_idx)
 }
