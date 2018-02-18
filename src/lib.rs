@@ -443,7 +443,7 @@ where R: RangeArgument<usize>,
     Bound::Unbounded => 0,
   };
   let end_idx = match r.end() {
-    Bound::Included(&x) => x - 1,
+    Bound::Included(&x) => x + 1,
     Bound::Excluded(&x) => x,
     Bound::Unbounded => size,
     _ => unimplemented!(),
