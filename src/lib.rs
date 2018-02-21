@@ -126,7 +126,7 @@ impl ArrayIndex for Index1d {
   type Above = Index2d;
 
   fn zero() -> Self {
-    1
+    0
   }
 
   fn index_add(&self, shift: &Self) -> Self {
