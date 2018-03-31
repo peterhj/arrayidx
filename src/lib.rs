@@ -1,5 +1,5 @@
 /*
-Copyright 2017 the arrayidx authors
+Copyright 2017-2018 Peter Jin
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,16 +29,7 @@ pub type Index4d = [usize; 4];
 pub type Index5d = [usize; 5];
 pub struct UnimplIndex;
 
-// TODO: deprecated.
-pub type Range0d = ();
-pub type Range1d = ();
-pub type Range2d = ();
-pub type Range3d = ();
-pub type Range4d = ();
-pub type Range5d = ();
-
 pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
-  type Range;
   type Above: Sized;
 
   fn zero() -> Self where Self: Sized;
@@ -63,13 +54,7 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   fn dim(&self) -> usize;
 }
 
-/*pub trait ArrayRange<Idx> {
-  fn start(&self, offset: &Idx) -> Idx;
-  fn end(&self, limit: &Idx) -> Idx;
-}*/
-
 impl ArrayIndex for Index0d {
-  type Range = Range0d;
   type Above = Index1d;
 
   fn zero() -> Self {
@@ -122,7 +107,6 @@ impl ArrayIndex for Index0d {
 }
 
 impl ArrayIndex for Index1d {
-  type Range = Range1d;
   type Above = Index2d;
 
   fn zero() -> Self {
@@ -175,7 +159,6 @@ impl ArrayIndex for Index1d {
 }
 
 impl ArrayIndex for Index2d {
-  type Range = Range2d;
   type Above = Index3d;
 
   fn zero() -> Self {
@@ -234,7 +217,6 @@ impl ArrayIndex for Index2d {
 }
 
 impl ArrayIndex for Index3d {
-  type Range = Range3d;
   type Above = Index4d;
 
   fn zero() -> Self {
@@ -297,7 +279,6 @@ impl ArrayIndex for Index3d {
 }
 
 impl ArrayIndex for Index4d {
-  type Range = Range4d;
   type Above = Index5d;
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -364,7 +345,6 @@ impl ArrayIndex for Index4d {
 }
 
 impl ArrayIndex for Index5d {
-  type Range = Range5d;
   type Above = UnimplIndex;
 
   fn zero() -> Self {
