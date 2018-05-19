@@ -33,16 +33,17 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   type Above: Sized;
 
   fn zero() -> Self where Self: Sized;
+
   fn index_add(&self, shift: &Self) -> Self where Self: Sized;
   fn index_sub(&self, shift: &Self) -> Self where Self: Sized;
 
-  fn prepend(&self, new_inside: usize) -> Self::Above;
-  fn append(&self, new_outside: usize) -> Self::Above;
+  fn index_prepend(&self, new_inside: usize) -> Self::Above;
+  fn index_append(&self, new_outside: usize) -> Self::Above;
 
   fn to_packed_stride(&self) -> Self where Self: Sized;
   fn is_packed(&self, stride: &Self) -> bool where Self: Sized;
   fn stride_append_packed(&self, outside: usize) -> Self::Above where Self: Sized {
-    self.append(self.outside() * outside)
+    self.index_append(self.outside() * outside)
   }
 
   fn flat_len(&self) -> usize;
@@ -77,11 +78,11 @@ impl ArrayIndex for Index0d {
     true
   }
 
-  fn prepend(&self, major: usize) -> Index1d {
+  fn index_prepend(&self, major: usize) -> Index1d {
     major
   }
 
-  fn append(&self, minor: usize) -> Index1d {
+  fn index_append(&self, minor: usize) -> Index1d {
     minor
   }
 
@@ -129,11 +130,11 @@ impl ArrayIndex for Index1d {
     self.to_packed_stride() == *stride
   }
 
-  fn prepend(&self, major: usize) -> Index2d {
+  fn index_prepend(&self, major: usize) -> Index2d {
     [major, *self]
   }
 
-  fn append(&self, minor: usize) -> Index2d {
+  fn index_append(&self, minor: usize) -> Index2d {
     [*self, minor]
   }
 
@@ -186,11 +187,11 @@ impl ArrayIndex for Index2d {
     self.to_packed_stride() == *stride
   }
 
-  fn prepend(&self, major: usize) -> Index3d {
+  fn index_prepend(&self, major: usize) -> Index3d {
     [major, self[0], self[1]]
   }
 
-  fn append(&self, minor: usize) -> Index3d {
+  fn index_append(&self, minor: usize) -> Index3d {
     [self[0], self[1], minor]
   }
 
@@ -247,11 +248,11 @@ impl ArrayIndex for Index3d {
     self.to_packed_stride() == *stride
   }
 
-  fn prepend(&self, major: usize) -> Index4d {
+  fn index_prepend(&self, major: usize) -> Index4d {
     [major, self[0], self[1], self[2]]
   }
 
-  fn append(&self, minor: usize) -> Index4d {
+  fn index_append(&self, minor: usize) -> Index4d {
     [self[0], self[1], self[2], minor]
   }
 
@@ -312,11 +313,11 @@ impl ArrayIndex for Index4d {
     self.to_packed_stride() == *stride
   }
 
-  fn prepend(&self, major: usize) -> Index5d {
+  fn index_prepend(&self, major: usize) -> Index5d {
     [major, self[0], self[1], self[2], self[3]]
   }
 
-  fn append(&self, minor: usize) -> Index5d {
+  fn index_append(&self, minor: usize) -> Index5d {
     [self[0], self[1], self[2], self[3], minor]
   }
 
@@ -381,11 +382,11 @@ impl ArrayIndex for Index5d {
     self.to_packed_stride() == *stride
   }
 
-  fn prepend(&self, major: usize) -> UnimplIndex {
+  fn index_prepend(&self, major: usize) -> UnimplIndex {
     unimplemented!();
   }
 
-  fn append(&self, minor: usize) -> UnimplIndex {
+  fn index_append(&self, minor: usize) -> UnimplIndex {
     unimplemented!();
   }
 
@@ -432,6 +433,12 @@ where R: RangeArgument<usize>,
   assert!(end_idx <= size);
   (start_idx, end_idx)
 }
+
+/*pub fn unzip_range_3d<RR>(rr: RR, size: [usize; 3]) -> (Range<usize>, Range<usize>, Range<usize>)
+where RR: RangeArgument<[usize; 3]>
+{
+  // TODO
+}*/
 
 pub fn range2idxs_2d<R0, R1>(r0: R0, r1: R1, size: [usize; 2]) -> ([usize; 2], [usize; 2])
 where R0: RangeArgument<usize>,
