@@ -17,9 +17,8 @@ limitations under the License.
 #![feature(collections_range)]
 
 use std::collections::{Bound};
-use std::collections::range::{RangeArgument};
 use std::fmt::{Debug};
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull};
+use std::ops::{Range, RangeFrom, RangeTo, RangeFull, RangeBounds};
 
 pub type Index0d = ();
 pub type Index1d = usize;
@@ -416,14 +415,14 @@ impl ArrayIndex for Index5d {
 }
 
 pub fn range2idxs_1d<R>(r: R, size: usize) -> (usize, usize)
-where R: RangeArgument<usize>,
+where R: RangeBounds<usize>,
 {
-  let start_idx = match r.start() {
+  let start_idx = match r.start_bound() {
     Bound::Included(&x) => x,
     Bound::Excluded(&x) => x + 1,
     Bound::Unbounded => 0,
   };
-  let end_idx = match r.end() {
+  let end_idx = match r.end_bound() {
     Bound::Included(&x) => x + 1,
     Bound::Excluded(&x) => x,
     Bound::Unbounded => size,
@@ -435,14 +434,14 @@ where R: RangeArgument<usize>,
 }
 
 /*pub fn unzip_range_3d<RR>(rr: RR, size: [usize; 3]) -> (Range<usize>, Range<usize>, Range<usize>)
-where RR: RangeArgument<[usize; 3]>
+where RR: RangeBounds<[usize; 3]>
 {
   // TODO
 }*/
 
 pub fn range2idxs_2d<R0, R1>(r0: R0, r1: R1, size: [usize; 2]) -> ([usize; 2], [usize; 2])
-where R0: RangeArgument<usize>,
-      R1: RangeArgument<usize>,
+where R0: RangeBounds<usize>,
+      R1: RangeBounds<usize>,
 {
   let (s0, e0) = range2idxs_1d(r0, size[0]);
   let (s1, e1) = range2idxs_1d(r1, size[1]);
@@ -452,9 +451,9 @@ where R0: RangeArgument<usize>,
 }
 
 pub fn range2idxs_3d<R0, R1, R2>(r0: R0, r1: R1, r2: R2, size: [usize; 3]) -> ([usize; 3], [usize; 3])
-where R0: RangeArgument<usize>,
-      R1: RangeArgument<usize>,
-      R2: RangeArgument<usize>,
+where R0: RangeBounds<usize>,
+      R1: RangeBounds<usize>,
+      R2: RangeBounds<usize>,
 {
   let (s0, e0) = range2idxs_1d(r0, size[0]);
   let (s1, e1) = range2idxs_1d(r1, size[1]);
@@ -465,10 +464,10 @@ where R0: RangeArgument<usize>,
 }
 
 pub fn range2idxs_4d<R0, R1, R2, R3>(r0: R0, r1: R1, r2: R2, r3: R3, size: [usize; 4]) -> ([usize; 4], [usize; 4])
-where R0: RangeArgument<usize>,
-      R1: RangeArgument<usize>,
-      R2: RangeArgument<usize>,
-      R3: RangeArgument<usize>,
+where R0: RangeBounds<usize>,
+      R1: RangeBounds<usize>,
+      R2: RangeBounds<usize>,
+      R3: RangeBounds<usize>,
 {
   let (s0, e0) = range2idxs_1d(r0, size[0]);
   let (s1, e1) = range2idxs_1d(r1, size[1]);
