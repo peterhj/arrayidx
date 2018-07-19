@@ -428,8 +428,10 @@ where R: RangeBounds<usize>,
     Bound::Unbounded => size,
     _ => unimplemented!(),
   };
-  assert!(start_idx <= end_idx);
-  assert!(end_idx <= size);
+  assert!(start_idx <= end_idx,
+      "array bounds violation: {} greater than {}", start_idx, end_idx);
+  assert!(end_idx <= size,
+      "array end bounds violation: {} greater than {}", end_idx, size);
   (start_idx, end_idx)
 }
 
