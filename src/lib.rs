@@ -26,18 +26,27 @@ pub type Index2d = [usize; 2];
 pub type Index3d = [usize; 3];
 pub type Index4d = [usize; 4];
 pub type Index5d = [usize; 5];
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct UnimplIndex;
 
 pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
-  type Above: Sized;
+  type Above: ArrayIndex + Sized;
+  type Below: ArrayIndex + Sized;
 
   fn zero() -> Self where Self: Sized;
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self where Self: Sized;
+  fn to_nd(&self) -> Vec<usize>;
 
   fn index_add(&self, shift: &Self) -> Self where Self: Sized;
   fn index_sub(&self, shift: &Self) -> Self where Self: Sized;
 
   fn index_prepend(&self, new_inside: usize) -> Self::Above;
   fn index_append(&self, new_outside: usize) -> Self::Above;
+
+  fn index_at(&self, axis: isize) -> usize;
+  fn index_cut(&self, axis: isize) -> Self::Below;
 
   fn to_packed_stride(&self) -> Self where Self: Sized;
   fn is_packed(&self, stride: &Self) -> bool where Self: Sized;
@@ -56,9 +65,19 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
 
 impl ArrayIndex for Index0d {
   type Above = Index1d;
+  type Below = Index0d;
 
   fn zero() -> Self {
     ()
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(0, nd_shape.len());
+    ()
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    vec![]
   }
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -85,6 +104,15 @@ impl ArrayIndex for Index0d {
     minor
   }
 
+  fn index_at(&self, _axis: isize) -> usize {
+    unreachable!();
+  }
+
+  fn index_cut(&self, _axis: isize) -> Index0d {
+    // TODO: any special handling for this case?
+    ()
+  }
+
   fn flat_len(&self) -> usize {
     1
   }
@@ -108,9 +136,19 @@ impl ArrayIndex for Index0d {
 
 impl ArrayIndex for Index1d {
   type Above = Index2d;
+  type Below = Index0d;
 
   fn zero() -> Self {
     0
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(1, nd_shape.len());
+    nd_shape[0]
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    vec![*self]
   }
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -137,6 +175,16 @@ impl ArrayIndex for Index1d {
     [*self, minor]
   }
 
+  fn index_at(&self, axis: isize) -> usize {
+    assert_eq!(0, axis);
+    *self
+  }
+
+  fn index_cut(&self, axis: isize) -> Index0d {
+    assert_eq!(0, axis);
+    ()
+  }
+
   fn flat_len(&self) -> usize {
     *self
   }
@@ -160,9 +208,20 @@ impl ArrayIndex for Index1d {
 
 impl ArrayIndex for Index2d {
   type Above = Index3d;
+  type Below = Index1d;
 
   fn zero() -> Self {
     [0, 0]
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(2, nd_shape.len());
+    [ nd_shape[0],
+      nd_shape[1], ]
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    (self as &[usize]).to_owned()
   }
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -194,6 +253,18 @@ impl ArrayIndex for Index2d {
     [self[0], self[1], minor]
   }
 
+  fn index_at(&self, axis: isize) -> usize {
+    self[axis as usize]
+  }
+
+  fn index_cut(&self, axis: isize) -> Index1d {
+    match axis {
+      0 => self[1],
+      1 => self[0],
+      _ => unreachable!(),
+    }
+  }
+
   fn flat_len(&self) -> usize {
     self[0] * self[1]
   }
@@ -218,9 +289,21 @@ impl ArrayIndex for Index2d {
 
 impl ArrayIndex for Index3d {
   type Above = Index4d;
+  type Below = Index2d;
 
   fn zero() -> Self {
     [0, 0, 0]
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(3, nd_shape.len());
+    [ nd_shape[0],
+      nd_shape[1],
+      nd_shape[2], ]
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    (self as &[usize]).to_owned()
   }
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -255,6 +338,19 @@ impl ArrayIndex for Index3d {
     [self[0], self[1], self[2], minor]
   }
 
+  fn index_at(&self, axis: isize) -> usize {
+    self[axis as usize]
+  }
+
+  fn index_cut(&self, axis: isize) -> Index2d {
+    match axis {
+      0 => [self[1], self[2]],
+      1 => [self[0], self[2]],
+      2 => [self[0], self[1]],
+      _ => unreachable!(),
+    }
+  }
+
   fn flat_len(&self) -> usize {
     self[0] * self[1] * self[2]
   }
@@ -280,6 +376,7 @@ impl ArrayIndex for Index3d {
 
 impl ArrayIndex for Index4d {
   type Above = Index5d;
+  type Below = Index3d;
 
   fn index_add(&self, shift: &Self) -> Self {
     [ self[0] + shift[0],
@@ -308,6 +405,18 @@ impl ArrayIndex for Index4d {
     [0, 0, 0, 0]
   }
 
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(4, nd_shape.len());
+    [ nd_shape[0],
+      nd_shape[1],
+      nd_shape[2],
+      nd_shape[3], ]
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    (self as &[usize]).to_owned()
+  }
+
   fn is_packed(&self, stride: &Self) -> bool {
     self.to_packed_stride() == *stride
   }
@@ -318,6 +427,20 @@ impl ArrayIndex for Index4d {
 
   fn index_append(&self, minor: usize) -> Index5d {
     [self[0], self[1], self[2], self[3], minor]
+  }
+
+  fn index_at(&self, axis: isize) -> usize {
+    self[axis as usize]
+  }
+
+  fn index_cut(&self, axis: isize) -> Index3d {
+    match axis {
+      0 => [self[1], self[2], self[3]],
+      1 => [self[0], self[2], self[3]],
+      2 => [self[0], self[1], self[3]],
+      3 => [self[0], self[1], self[2]],
+      _ => unreachable!(),
+    }
   }
 
   fn flat_len(&self) -> usize {
@@ -346,9 +469,23 @@ impl ArrayIndex for Index4d {
 
 impl ArrayIndex for Index5d {
   type Above = UnimplIndex;
+  type Below = Index4d;
 
   fn zero() -> Self {
     [0, 0, 0, 0, 0]
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    assert_eq!(5, nd_shape.len());
+    [ nd_shape[0],
+      nd_shape[1],
+      nd_shape[2],
+      nd_shape[3],
+      nd_shape[4], ]
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    (self as &[usize]).to_owned()
   }
 
   fn index_add(&self, shift: &Self) -> Self {
@@ -389,6 +526,21 @@ impl ArrayIndex for Index5d {
     unimplemented!();
   }
 
+  fn index_at(&self, axis: isize) -> usize {
+    self[axis as usize]
+  }
+
+  fn index_cut(&self, axis: isize) -> Index4d {
+    match axis {
+      0 => [self[1], self[2], self[3], self[4]],
+      1 => [self[0], self[2], self[3], self[4]],
+      2 => [self[0], self[1], self[3], self[4]],
+      3 => [self[0], self[1], self[2], self[4]],
+      4 => [self[0], self[1], self[2], self[3]],
+      _ => unreachable!(),
+    }
+  }
+
   fn flat_len(&self) -> usize {
     self[0] * self[1] * self[2] * self[3] * self[4]
   }
@@ -411,6 +563,75 @@ impl ArrayIndex for Index5d {
 
   fn dim(&self) -> usize {
     5
+  }
+}
+
+impl ArrayIndex for UnimplIndex {
+  type Above = UnimplIndex;
+  type Below = UnimplIndex;
+
+  fn zero() -> Self {
+    unimplemented!();
+  }
+
+  fn from_nd(nd_shape: Vec<usize>) -> Self {
+    unimplemented!();
+  }
+
+  fn to_nd(&self) -> Vec<usize> {
+    unimplemented!();
+  }
+
+  fn index_add(&self, shift: &Self) -> Self {
+    unimplemented!();
+  }
+
+  fn index_sub(&self, shift: &Self) -> Self {
+    unimplemented!();
+  }
+
+  fn to_packed_stride(&self) -> Self {
+    unimplemented!();
+  }
+
+  fn is_packed(&self, stride: &Self) -> bool {
+    unimplemented!();
+  }
+
+  fn index_prepend(&self, major: usize) -> UnimplIndex {
+    unimplemented!();
+  }
+
+  fn index_append(&self, minor: usize) -> UnimplIndex {
+    unimplemented!();
+  }
+
+  fn index_at(&self, axis: isize) -> usize {
+    unimplemented!();
+  }
+
+  fn index_cut(&self, axis: isize) -> UnimplIndex {
+    unimplemented!();
+  }
+
+  fn flat_len(&self) -> usize {
+    unimplemented!();
+  }
+
+  fn flat_index(&self, stride: &Self) -> usize {
+    unimplemented!();
+  }
+
+  fn inside(&self) -> usize {
+    unimplemented!();
+  }
+
+  fn outside(&self) -> usize {
+    unimplemented!();
+  }
+
+  fn dim(&self) -> usize {
+    unimplemented!();
   }
 }
 
