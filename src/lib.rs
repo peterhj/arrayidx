@@ -18,7 +18,15 @@ limitations under the License.
 
 use std::collections::{Bound};
 use std::fmt::{Debug};
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull, RangeBounds};
+use std::hash::{Hash};
+use std::ops::{RangeBounds};
+
+// TODO: figure out axis API.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct Ax(pub usize);
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct UnimplIndex;
 
 pub type Index0d = ();
 pub type Index1d = usize;
@@ -27,10 +35,54 @@ pub type Index3d = [usize; 3];
 pub type Index4d = [usize; 4];
 pub type Index5d = [usize; 5];
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct UnimplIndex;
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct IndexNd{pub components: Vec<usize>}
 
-pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
+impl Default for IndexNd {
+  fn default() -> Self {
+    IndexNd{components: vec![]}
+  }
+}
+
+impl IndexNd {
+  pub fn flat_len(&self) -> usize {
+    let mut len = 1;
+    for d in 0 .. self.dim() {
+      len *= self.components[d];
+    }
+    len
+  }
+
+  pub fn index_at(&self, axis: isize) -> usize {
+    self.components[axis as usize]
+  }
+
+  pub fn dim(&self) -> usize {
+    self.components.len()
+  }
+
+  pub fn ndim(&self) -> usize {
+    self.dim()
+  }
+
+  pub fn splice_at(&self, axis: isize) -> (IndexNd, IndexNd, IndexNd) {
+    let mut prefix_idx = IndexNd::default();
+    for prefix_axis in 0 .. axis {
+      prefix_idx.components.push(self.index_at(prefix_axis));
+    }
+    let mut select_idx = IndexNd::default();
+    if axis < self.dim() as isize {
+      select_idx.components.push(self.index_at(axis));
+    }
+    let mut suffix_idx = IndexNd::default();
+    for suffix_axis in axis + 1 .. self.dim() as isize {
+      suffix_idx.components.push(self.index_at(suffix_axis));
+    }
+    (prefix_idx, select_idx, suffix_idx)
+  }
+}
+
+pub trait ArrayIndex: Clone + PartialEq + Eq + Hash + Debug {
   type Above: ArrayIndex + Sized;
   type Below: ArrayIndex + Sized;
 
@@ -38,6 +90,9 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
 
   fn from_nd(nd_shape: Vec<usize>) -> Self where Self: Sized;
   fn to_nd(&self) -> Vec<usize>;
+  fn _to_nd(&self) -> IndexNd {
+    IndexNd{components: self.to_nd()}
+  }
 
   fn index_add(&self, shift: &Self) -> Self where Self: Sized;
   fn index_sub(&self, shift: &Self) -> Self where Self: Sized;
@@ -61,6 +116,9 @@ pub trait ArrayIndex: Clone + PartialEq + Eq + Debug {
   fn outside(&self) -> usize;
 
   fn dim(&self) -> usize;
+  fn ndim(&self) -> usize {
+    self.dim()
+  }
 }
 
 impl ArrayIndex for Index0d {
@@ -647,7 +705,6 @@ where R: RangeBounds<usize>,
     Bound::Included(&x) => x + 1,
     Bound::Excluded(&x) => x,
     Bound::Unbounded => size,
-    _ => unimplemented!(),
   };
   assert!(start_idx <= end_idx,
       "array bounds violation: {} greater than {}", start_idx, end_idx);
