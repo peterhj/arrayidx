@@ -1,5 +1,3 @@
-#![feature(collections_range)]
-
 use std::collections::{Bound};
 use std::fmt::{Debug};
 use std::hash::{Hash};
@@ -29,6 +27,14 @@ impl Default for IndexNd {
 }
 
 impl IndexNd {
+  pub fn zero(dim: usize) -> Self {
+    let mut components = Vec::with_capacity(dim);
+    for _ in 0 .. dim {
+      components.push(0);
+    }
+    IndexNd{components}
+  }
+
   pub fn flat_len(&self) -> usize {
     let mut len = 1;
     for d in 0 .. self.dim() {
@@ -39,6 +45,38 @@ impl IndexNd {
 
   pub fn index_at(&self, axis: isize) -> usize {
     self.components[axis as usize]
+  }
+
+  pub fn to_packed_stride(&self) -> Self {
+    let mut stride = IndexNd::zero(self.dim());
+    for d in 0 .. self.dim() {
+      match d {
+        0 => stride.components[0] = 1,
+        _ => stride.components[d] = stride.components[d-1] * self.components[d-1],
+      }
+    }
+    stride
+  }
+
+  pub fn is_zero(&self) -> bool {
+    for d in 0 .. self.dim() {
+      if self.components[d] != 0 {
+        return false;
+      }
+    }
+    true
+  }
+
+  pub fn is_packed(&self, stride: &Self) -> bool {
+    &self.to_packed_stride() == stride
+  }
+
+  pub fn inside(&self) -> usize {
+    self.components[0]
+  }
+
+  pub fn outside(&self) -> usize {
+    self.components[self.dim() - 1]
   }
 
   pub fn dim(&self) -> usize {
