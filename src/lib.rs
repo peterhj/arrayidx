@@ -1,7 +1,7 @@
 use std::collections::{Bound};
 use std::fmt::{Debug};
 use std::hash::{Hash};
-use std::ops::{RangeBounds};
+use std::ops::{Index, RangeBounds};
 
 // TODO: figure out axis API.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -26,7 +26,19 @@ impl Default for IndexNd {
   }
 }
 
+impl Index<usize> for IndexNd {
+  type Output = usize;
+
+  fn index(&self, index: usize) -> &usize {
+    &self.components[index]
+  }
+}
+
 impl IndexNd {
+  pub fn from(components: Vec<usize>) -> Self {
+    IndexNd{components}
+  }
+
   pub fn zero(dim: usize) -> Self {
     let mut components = Vec::with_capacity(dim);
     for _ in 0 .. dim {
